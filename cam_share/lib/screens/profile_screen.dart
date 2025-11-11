@@ -35,19 +35,91 @@ class ProfileScreen extends StatelessWidget {
           }
 
           final userData = snapshot.data!;
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
+
+          // Derive status properly
+          String status;
+          if (userData['role'] == 'owner') {
+            status = 'Owner';
+          } else if (userData['role'] == 'renter') {
+            status = (userData['type'] == 'pro') ? 'Pro' : 'Beginner';
+          } else {
+            status = 'Unknown';
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Name: ${userData['name']}"),
-                Text("Email: ${userData['email']}"),
-                Text("User Type: ${userData['userType']}"),
+                // Profile Picture Placeholder
+                CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.grey[300],
+                  child: const Icon(Icons.person, size: 50, color: Colors.white),
+                ),
+                const SizedBox(height: 20),
+
+                // Name Card
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.person),
+                    title: const Text("Name"),
+                    subtitle: Text(userData['name']),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Email Card
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.email),
+                    title: const Text("Email"),
+                    subtitle: Text(userData['email']),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Status / UserType Card
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.info),
+                    title: const Text("Status"),
+                    subtitle: Text(status),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Matric Number Card 
+                const Card(
+                  child: ListTile(
+                    leading: Icon(Icons.confirmation_number),
+                    title: Text("Matric Number"),
+                    subtitle: Text("A1234567"),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Phone Number Card (dummy)
+                const Card(
+                  child: ListTile(
+                    leading: Icon(Icons.phone),
+                    title: Text("Phone Number"),
+                    subtitle: Text("+60123456789"),
+                  ),
+                ),
               ],
             ),
           );
         },
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.pushNamed(context, '/editProfile');
+        },
+        label: const Text('Edit Profile'),
+        icon: const Icon(Icons.edit),
+        backgroundColor: null, // default button color
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }

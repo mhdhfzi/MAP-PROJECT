@@ -33,16 +33,26 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
+  void _goToProfile() {
+    Navigator.pushNamed(context, '/profile');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Owner Dashboard'),
+        backgroundColor: Colors.deepPurple,
         actions: [
           IconButton(
+            icon: const Icon(Icons.person),
+            tooltip: 'Profile',
+            onPressed: _goToProfile,
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: _logout,
             tooltip: 'Logout',
+            onPressed: _logout,
           ),
         ],
       ),
@@ -54,9 +64,18 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
             const SizedBox(height: 10),
             Text('Email: $userEmail', style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 20),
-            const Text('List your equipment with photos, description, and pricing.', textAlign: TextAlign.center),
+            const Text(
+              'List your equipment with photos, description, and pricing.',
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushNamed(context, '/addEquipment');
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }
