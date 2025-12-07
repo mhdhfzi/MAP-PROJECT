@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cam_share/screens/profile_screen.dart';
-
-// Ensure these imports match your actual file structure
 import 'photography_screen.dart';
 import 'videography_screen.dart';
 import 'accessories_screen.dart';
@@ -45,15 +43,29 @@ class RenterProDashboard extends StatefulWidget {
 class _RenterProDashboardState extends State<RenterProDashboard> {
   String userName = 'Loading...';
   String userEmail = '';
+  
+  // Menu Visibility Toggles
   bool _showProMenu = false;
+  bool _showBeginnerMenu = false; // NEW
 
-  // Filter Checkbox States
+  // Pro Filter Checkbox States
   bool _filterCamera = false;
   bool _filterDrones = false;
   bool _filterAccessories = false;
   bool _filterCanon = false;
   bool _filterNikon = false;
   bool _filterSony = false;
+
+  // Beginner Filter Checkbox States (NEW)
+  // 1. Budget
+  bool _budgetLow = false;
+  bool _budgetMed = false;
+  bool _budgetHigh = false;
+  // 2. Purpose
+  bool _purposeTravel = false;
+  bool _purposePortrait = false;
+  bool _purposeEvents = false;
+  bool _purposeIndoor = false;
 
   @override
   void initState() {
@@ -90,9 +102,19 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
     Navigator.pushNamed(context, '/profile');
   }
 
+  // Updated: Closes Beginner menu if opening Pro
   void _toggleProMenu() {
     setState(() {
       _showProMenu = !_showProMenu;
+      if (_showProMenu) _showBeginnerMenu = false;
+    });
+  }
+
+  // NEW: Closes Pro menu if opening Beginner
+  void _toggleBeginnerMenu() {
+    setState(() {
+      _showBeginnerMenu = !_showBeginnerMenu;
+      if (_showBeginnerMenu) _showProMenu = false;
     });
   }
 
@@ -126,7 +148,7 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
           const SizedBox(width: 8),
         ],
       ),
-      
+       
       drawer: Drawer(
         backgroundColor: accentColor, 
         width: 250, 
@@ -179,15 +201,17 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
                   height: 70,
                   child: Row(
                     children: [
-                      Expanded(child: _buildHeaderButton("BEGINNER", accentColor, () {})),
+                      // Connected _toggleBeginnerMenu here
+                      Expanded(child: _buildHeaderButton("BEGINNER", accentColor, _toggleBeginnerMenu)),
                       const SizedBox(width: 16),
+                      // Connected _toggleProMenu here
                       Expanded(child: _buildHeaderButton("PRO", accentColor, _toggleProMenu)),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
                 
-                // === UPDATED COLUMNS: NOW USING ELEVATED BUTTONS ===
+                // === BUTTONS COLUMN ===
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -217,6 +241,7 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
             ),
           ),
 
+          // === PRO MENU ===
           if (_showProMenu)
             Positioned(
               top: 85,
@@ -225,9 +250,20 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
               bottom: 100,
               child: _buildProDropdown(accentColor),
             ),
+
+          // === BEGINNER MENU ===
+          // Positioned slightly differently to align with the left button
+          if (_showBeginnerMenu)
+            Positioned(
+              top: 85,
+              left: 16,
+              right: 16,
+              bottom: 80, // Giving it a bit more space
+              child: _buildBeginnerDropdown(accentColor),
+            ),
         ],
       ),
-      
+       
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: SizedBox(
         width: 65,
@@ -240,6 +276,72 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
           child: const Icon(Icons.home, color: Colors.white, size: 36),
         ),
       ),
+    );
+  }
+
+  // === BEGINNER DROPDOWN WIDGET ===
+  Widget _buildBeginnerDropdown(Color accentColor) {
+    return Stack(
+      alignment: Alignment.topLeft, // Align triangle to left
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 10),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: accentColor,
+            borderRadius: BorderRadius.circular(4),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Budget Section
+              const Text("Budget Level", style: TextStyle(color: Colors.cyanAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              _buildCheckboxRow("Low (RM 50 – RM 150/day)", _budgetLow, (v) => setState(() => _budgetLow = v!)),
+              _buildCheckboxRow("Med (RM 150 – RM 300/day)", _budgetMed, (v) => setState(() => _budgetMed = v!)),
+              _buildCheckboxRow("High (RM 300+/day)", _budgetHigh, (v) => setState(() => _budgetHigh = v!)),
+              
+              const SizedBox(height: 16),
+              
+              // 2. Purpose Section
+              const Text("Purpose", style: TextStyle(color: Colors.cyanAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              _buildCheckboxRow("Travel & Vlogging", _purposeTravel, (v) => setState(() => _purposeTravel = v!)),
+              _buildCheckboxRow("Portrait Photography", _purposePortrait, (v) => setState(() => _purposePortrait = v!)),
+              _buildCheckboxRow("Events/Weddings", _purposeEvents, (v) => setState(() => _purposeEvents = v!)),
+              _buildCheckboxRow("Indoor content filming", _purposeIndoor, (v) => setState(() => _purposeIndoor = v!)),
+
+              const Spacer(),
+              
+              SizedBox(
+                width: double.infinity,
+                height: 40,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.cyanAccent,
+                    foregroundColor: Colors.black,
+                  ),
+                  onPressed: () {
+                    _toggleBeginnerMenu();
+                  },
+                  child: const Text("Get Suggestions", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        Padding(
+          padding: const EdgeInsets.only(left: 50), 
+          child: CustomPaint(
+            painter: TrianglePainter(color: accentColor),
+            size: const Size(20, 10),
+          ),
+        ),
+      ],
     );
   }
 
@@ -309,7 +411,7 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 13)),
+          Expanded(child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12))),
           SizedBox(
             height: 24,
             width: 24,
@@ -343,20 +445,19 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
     );
   }
 
-  // === NEW: Replaced Container+InkWell with ElevatedButton ===
   Widget _buildVerticalButton(String title, Color color, VoidCallback onTap) {
     return Expanded(
       child: SizedBox(
-        height: double.infinity, // Force button to fill vertical space
+        height: double.infinity, 
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: color,
-            foregroundColor: Colors.black87, // Text/Icon color
+            foregroundColor: Colors.black87, 
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4),
             ),
-            elevation: 2, // Standard button elevation
-            padding: EdgeInsets.zero, // Allows content to be centered
+            elevation: 2, 
+            padding: EdgeInsets.zero, 
           ),
           onPressed: onTap,
           child: Center(
