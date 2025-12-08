@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "81841259945",
+    "project_id": "camshare-8235f",
+    "storage_bucket": "camshare-8235f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:81841259945:android:61dbff072a5f7596c8b0b8",
+        "android_client_info": {
+          "package_name": "com.example.cam_share"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkb2ZrOq-cNdv53XY6RBAyskrOWvzhK5w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

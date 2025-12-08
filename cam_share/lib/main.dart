@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
@@ -9,6 +10,7 @@ import 'screens/profile_screen.dart';
 import 'screens/renter_beginner_dashboard.dart';
 import 'screens/renter_pro_dashboard.dart';
 import 'screens/owner_dashboard.dart';
+import 'screens/booking_request_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,8 +35,9 @@ class MyApp extends StatelessWidget {
         '/dashboard': (context) => const DashboardScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/renterBeginnerDashboard': (context) => const RenterDashboard(),
-'/renterProDashboard': (context) => const RenterProDashboard(),
-'/ownerDashboard': (context) => const OwnerDashboard(),
+        '/renterProDashboard': (context) => const RenterProDashboard(),
+        '/ownerDashboard': (context) => const OwnerDashboard(),
+        '/bookingRequest': (context) => const BookingRequestPage(),
 
       },
     );
