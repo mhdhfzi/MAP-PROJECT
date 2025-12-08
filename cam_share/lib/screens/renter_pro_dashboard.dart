@@ -19,9 +19,11 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Photography App',
       routes: {
-        '/login': (context) => const Scaffold(body: Center(child: Text("Login Placeholder"))),
+        '/login': (context) =>
+            const Scaffold(body: Center(child: Text("Login Placeholder"))),
         '/profile': (context) => const ProfileScreen(),
-        '/editProfile': (context) => const Scaffold(body: Center(child: Text("Edit Profile Placeholder"))),
+        '/editProfile': (context) =>
+            const Scaffold(body: Center(child: Text("Edit Profile Placeholder"))),
       },
       theme: ThemeData(
         scaffoldBackgroundColor: Colors.white,
@@ -43,12 +45,11 @@ class RenterProDashboard extends StatefulWidget {
 class _RenterProDashboardState extends State<RenterProDashboard> {
   String userName = 'Loading...';
   String userEmail = '';
-  
-  // Menu Visibility Toggles
-  bool _showProMenu = false;
-  bool _showBeginnerMenu = false; // NEW
 
-  // Pro Filter Checkbox States
+  bool _showProMenu = false;
+  bool _showBeginnerMenu = false;
+
+  // Pro Filters
   bool _filterCamera = false;
   bool _filterDrones = false;
   bool _filterAccessories = false;
@@ -56,12 +57,10 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
   bool _filterNikon = false;
   bool _filterSony = false;
 
-  // Beginner Filter Checkbox States (NEW)
-  // 1. Budget
+  // Beginner Filters
   bool _budgetLow = false;
   bool _budgetMed = false;
   bool _budgetHigh = false;
-  // 2. Purpose
   bool _purposeTravel = false;
   bool _purposePortrait = false;
   bool _purposeEvents = false;
@@ -76,7 +75,8 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
   Future<void> _loadUserInfo() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (mounted) {
         setState(() {
           userName = doc.data()?['name'] ?? 'User';
@@ -85,7 +85,7 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
       }
     } else {
       setState(() {
-        userName = "USERNAME"; 
+        userName = "USERNAME";
         userEmail = "";
       });
     }
@@ -102,7 +102,6 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
     Navigator.pushNamed(context, '/profile');
   }
 
-  // Updated: Closes Beginner menu if opening Pro
   void _toggleProMenu() {
     setState(() {
       _showProMenu = !_showProMenu;
@@ -110,7 +109,6 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
     });
   }
 
-  // NEW: Closes Pro menu if opening Beginner
   void _toggleBeginnerMenu() {
     setState(() {
       _showBeginnerMenu = !_showBeginnerMenu;
@@ -142,52 +140,60 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black, size: 28),
+            icon:
+                const Icon(Icons.shopping_cart_outlined, color: Colors.black, size: 28),
             onPressed: () {},
           ),
           const SizedBox(width: 8),
         ],
       ),
-       
+
+      // Swipeable Drawer
       drawer: Drawer(
-        backgroundColor: accentColor, 
-        width: 250, 
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 80), 
-            GestureDetector(
-              onTap: _goToProfile,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
-                child: const CircleAvatar(
-                  radius: 35,
-                  backgroundColor: Colors.white, 
-                  child: Icon(Icons.person_outline, size: 35, color: Colors.black),
+        child: Container(
+          color: accentColor,
+          child: SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: _goToProfile,
+                  child: CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.person, size: 40, color: Colors.black),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                Text(userName.toUpperCase(),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16)),
+                const SizedBox(height: 4),
+                Text(userEmail,
+                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(height: 20),
+                Divider(color: Colors.white30),
+                const SizedBox(height: 10),
+
+                // Menu Items
+                _buildDrawerItem(Icons.home, "Dashboard", () => Navigator.pop(context)),
+                _buildDrawerItem(Icons.person, "Profile", _goToProfile),
+                _buildDrawerItem(Icons.settings, "Settings", () {}),
+                _buildDrawerItem(Icons.help, "Help", () {}),
+                const Spacer(),
+
+                // Logout Button at bottom
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.white),
+                  title: const Text("Logout",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  onTap: _logout,
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              userName.toUpperCase(),
-              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-            ),
-            const SizedBox(height: 4),
-            GestureDetector(
-              onTap: _goToProfile,
-              child: const Text("add cvr", style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w400)),
-            ),
-            const Spacer(), 
-            Padding(
-              padding: const EdgeInsets.only(bottom: 40.0),
-              child: IconButton(
-                icon: const Icon(Icons.logout, color: Colors.white70),
-                onPressed: _logout,
-                tooltip: 'Logout',
-              ),
-            )
-          ],
+          ),
         ),
       ),
 
@@ -201,35 +207,35 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
                   height: 70,
                   child: Row(
                     children: [
-                      // Connected _toggleBeginnerMenu here
-                      Expanded(child: _buildHeaderButton("BEGINNER", accentColor, _toggleBeginnerMenu)),
+                      Expanded(
+                          child: _buildHeaderButton(
+                              "BEGINNER", accentColor, _toggleBeginnerMenu)),
                       const SizedBox(width: 16),
-                      // Connected _toggleProMenu here
-                      Expanded(child: _buildHeaderButton("PRO", accentColor, _toggleProMenu)),
+                      Expanded(
+                          child:
+                              _buildHeaderButton("PRO", accentColor, _toggleProMenu)),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
-                
-                // === BUTTONS COLUMN ===
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _buildVerticalButton(
-                        "photography", 
+                        "Photography",
                         cardColor,
                         () => _navigateToCategory(const PhotographyScreen()),
                       ),
                       const SizedBox(width: 12),
                       _buildVerticalButton(
-                        "Videography", 
+                        "Videography",
                         cardColor,
                         () => _navigateToCategory(const VideographyScreen()),
                       ),
                       const SizedBox(width: 12),
                       _buildVerticalButton(
-                        "Accessories", 
+                        "Accessories",
                         cardColor,
                         () => _navigateToCategory(const AccessoriesScreen()),
                       ),
@@ -240,8 +246,6 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
               ],
             ),
           ),
-
-          // === PRO MENU ===
           if (_showProMenu)
             Positioned(
               top: 85,
@@ -250,20 +254,17 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
               bottom: 100,
               child: _buildProDropdown(accentColor),
             ),
-
-          // === BEGINNER MENU ===
-          // Positioned slightly differently to align with the left button
           if (_showBeginnerMenu)
             Positioned(
               top: 85,
               left: 16,
               right: 16,
-              bottom: 80, // Giving it a bit more space
+              bottom: 80,
               child: _buildBeginnerDropdown(accentColor),
             ),
         ],
       ),
-       
+
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: SizedBox(
         width: 65,
@@ -279,10 +280,19 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
     );
   }
 
-  // === BEGINNER DROPDOWN WIDGET ===
+  Widget _buildDrawerItem(IconData icon, String title, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white),
+      title: Text(title,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+      onTap: onTap,
+    );
+  }
+
+  // === Copy your existing methods below ===
   Widget _buildBeginnerDropdown(Color accentColor) {
     return Stack(
-      alignment: Alignment.topLeft, // Align triangle to left
+      alignment: Alignment.topLeft,
       children: [
         Container(
           margin: const EdgeInsets.only(top: 10),
@@ -291,31 +301,43 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
             color: accentColor,
             borderRadius: BorderRadius.circular(4),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4)),
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4)),
             ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Budget Section
-              const Text("Budget Level", style: TextStyle(color: Colors.cyanAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+              const Text("Budget Level",
+                  style: TextStyle(
+                      color: Colors.cyanAccent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
-              _buildCheckboxRow("Low (RM 50 – RM 150/day)", _budgetLow, (v) => setState(() => _budgetLow = v!)),
-              _buildCheckboxRow("Med (RM 150 – RM 300/day)", _budgetMed, (v) => setState(() => _budgetMed = v!)),
-              _buildCheckboxRow("High (RM 300+/day)", _budgetHigh, (v) => setState(() => _budgetHigh = v!)),
-              
+              _buildCheckboxRow(
+                  "Low (RM 50 – RM 150/day)", _budgetLow, (v) => setState(() => _budgetLow = v!)),
+              _buildCheckboxRow(
+                  "Med (RM 150 – RM 300/day)", _budgetMed, (v) => setState(() => _budgetMed = v!)),
+              _buildCheckboxRow(
+                  "High (RM 300+/day)", _budgetHigh, (v) => setState(() => _budgetHigh = v!)),
               const SizedBox(height: 16),
-              
-              // 2. Purpose Section
-              const Text("Purpose", style: TextStyle(color: Colors.cyanAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+              const Text("Purpose",
+                  style: TextStyle(
+                      color: Colors.cyanAccent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
-              _buildCheckboxRow("Travel & Vlogging", _purposeTravel, (v) => setState(() => _purposeTravel = v!)),
-              _buildCheckboxRow("Portrait Photography", _purposePortrait, (v) => setState(() => _purposePortrait = v!)),
-              _buildCheckboxRow("Events/Weddings", _purposeEvents, (v) => setState(() => _purposeEvents = v!)),
-              _buildCheckboxRow("Indoor content filming", _purposeIndoor, (v) => setState(() => _purposeIndoor = v!)),
-
+              _buildCheckboxRow(
+                  "Travel & Vlogging", _purposeTravel, (v) => setState(() => _purposeTravel = v!)),
+              _buildCheckboxRow("Portrait Photography", _purposePortrait,
+                  (v) => setState(() => _purposePortrait = v!)),
+              _buildCheckboxRow(
+                  "Events/Weddings", _purposeEvents, (v) => setState(() => _purposeEvents = v!)),
+              _buildCheckboxRow(
+                  "Indoor content filming", _purposeIndoor, (v) => setState(() => _purposeIndoor = v!)),
               const Spacer(),
-              
               SizedBox(
                 width: double.infinity,
                 height: 40,
@@ -327,15 +349,15 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
                   onPressed: () {
                     _toggleBeginnerMenu();
                   },
-                  child: const Text("Get Suggestions", style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text("Get Suggestions",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
           ),
         ),
-        
         Padding(
-          padding: const EdgeInsets.only(left: 50), 
+          padding: const EdgeInsets.only(left: 50),
           child: CustomPaint(
             painter: TrianglePainter(color: accentColor),
             size: const Size(20, 10),
@@ -356,26 +378,27 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
             color: accentColor,
             borderRadius: BorderRadius.circular(4),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4)),
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4)),
             ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Device type:", style: TextStyle(color: Colors.white, fontSize: 14)),
+              const Text("Device type:",
+                  style: TextStyle(color: Colors.white, fontSize: 14)),
               _buildCheckboxRow("Camera", _filterCamera, (v) => setState(() => _filterCamera = v!)),
               _buildCheckboxRow("Drones", _filterDrones, (v) => setState(() => _filterDrones = v!)),
               _buildCheckboxRow("Accessories", _filterAccessories, (v) => setState(() => _filterAccessories = v!)),
-              
               const SizedBox(height: 16),
-              
-              const Text("Device Brands:", style: TextStyle(color: Colors.white, fontSize: 14)),
+              const Text("Device Brands:",
+                  style: TextStyle(color: Colors.white, fontSize: 14)),
               _buildCheckboxRow("CANON", _filterCanon, (v) => setState(() => _filterCanon = v!)),
               _buildCheckboxRow("NIKON", _filterNikon, (v) => setState(() => _filterNikon = v!)),
               _buildCheckboxRow("SONY", _filterSony, (v) => setState(() => _filterSony = v!)),
-
               const Spacer(),
-              
               SizedBox(
                 width: double.infinity,
                 height: 40,
@@ -387,13 +410,13 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
                   onPressed: () {
                     _toggleProMenu();
                   },
-                  child: const Text("Search", style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text("Search",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
           ),
         ),
-        
         Padding(
           padding: const EdgeInsets.only(right: 50),
           child: CustomPaint(
@@ -411,14 +434,16 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12))),
+          Expanded(
+              child: Text(label,
+                  style: const TextStyle(color: Colors.white, fontSize: 12))),
           SizedBox(
             height: 24,
             width: 24,
             child: Checkbox(
               value: value,
               onChanged: onChanged,
-              fillColor: WidgetStateProperty.all(Colors.white),
+              fillColor: MaterialStateProperty.all(Colors.white),
               checkColor: Colors.blue,
               side: BorderSide.none,
             ),
@@ -440,7 +465,8 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
       onPressed: onPressed,
       child: Text(
         text,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+        style:
+            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
       ),
     );
   }
@@ -448,16 +474,16 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
   Widget _buildVerticalButton(String title, Color color, VoidCallback onTap) {
     return Expanded(
       child: SizedBox(
-        height: double.infinity, 
+        height: double.infinity,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: color,
-            foregroundColor: Colors.black87, 
+            foregroundColor: Colors.black87,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4),
             ),
-            elevation: 2, 
-            padding: EdgeInsets.zero, 
+            elevation: 2,
+            padding: EdgeInsets.zero,
           ),
           onPressed: onTap,
           child: Center(

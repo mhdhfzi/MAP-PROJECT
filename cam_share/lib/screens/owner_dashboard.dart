@@ -12,10 +12,10 @@ class OwnerDashboard extends StatefulWidget {
 }
 
 class _OwnerDashboardState extends State<OwnerDashboard> {
-  String userName = 'Loading...';
+  String userName = '';
   String userEmail = '';
 
-  // Dummy booking requests (replace with Firestore later if needed)
+  // Dummy booking requests
   List<Map<String, dynamic>> bookingRequests = [
     {
       "equipment": "Canon EOS R5",
@@ -66,25 +66,73 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     Navigator.pushNamed(context, '/profile');
   }
 
+  void _goToSettings() {
+    // Navigate to settings page (implement later)
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Settings clicked")),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final Color accentColor = Colors.deepPurple;
+    final Color cardColor = const Color(0xFFF3F3F3);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Owner Dashboard"),
-        backgroundColor: Colors.deepPurple,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            tooltip: "Profile",
-            onPressed: _goToProfile,
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: "Logout",
-            onPressed: _logout,
-          ),
-        ],
+        backgroundColor: accentColor,
       ),
+
+      /// ---------- SIDEBAR DRAWER ----------
+      drawer: Drawer(
+        child: Container(
+          color: accentColor,
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 40),
+                GestureDetector(
+                  onTap: _goToProfile,
+                  child: CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.white,
+                    child: const Icon(Icons.person, size: 40, color: Colors.black),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  userName.toUpperCase(),
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Text(userEmail,
+                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(height: 30),
+                _buildDrawerItem(Icons.person, "Profile", _goToProfile),
+                _buildDrawerItem(Icons.add, "Add Equipment", () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddEquipmentScreen()),
+                  );
+                }),
+                _buildDrawerItem(Icons.list, "View Listings", () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ListingPage()),
+                  );
+                }),
+                _buildDrawerItem(Icons.settings, "Settings", _goToSettings),
+                const Spacer(),
+                _buildDrawerItem(Icons.logout, "Logout", _logout),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -93,17 +141,17 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
             /// ---------- OWNER PROFILE ----------
             Text(
               "Welcome, $userName",
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            Text(userEmail),
+            const SizedBox(height: 4),
+            Text(userEmail, style: const TextStyle(fontSize: 14, color: Colors.grey)),
             const SizedBox(height: 20),
 
             /// ---------- TWO MAIN BUTTONS ----------
             Row(
               children: [
-                /// ADD NEW EQUIPMENT
                 Expanded(
-                  child: ElevatedButton(
+                  child: ElevatedButton.icon(
                     onPressed: () async {
                       final added = await Navigator.push(
                         context,
@@ -120,14 +168,15 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                         );
                       }
                     },
-                    child: const Text("Add Equipment"),
+                    icon: const Icon(Icons.add),
+                    label: const Text("Add Equipment"),
+                    style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16)),
                   ),
                 ),
                 const SizedBox(width: 16),
-
-                /// VIEW LISTINGS (Powered by Firestore)
                 Expanded(
-                  child: ElevatedButton(
+                  child: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -136,7 +185,10 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                         ),
                       );
                     },
-                    child: const Text("View Listings"),
+                    icon: const Icon(Icons.list),
+                    label: const Text("View Listings"),
+                    style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16)),
                   ),
                 ),
               ],
@@ -156,8 +208,13 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
               var request = entry.value;
 
               return Card(
+                color: cardColor,
+                margin: const EdgeInsets.symmetric(vertical: 6),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
                 child: ListTile(
-                  title: Text(request["equipment"]),
+                  title: Text(request["equipment"],
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(
                     "Renter: ${request['renter']}\nDate: ${request['date']}",
                   ),
@@ -166,12 +223,11 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                           onPressed: () => _acceptBooking(index),
                           child: const Text("Accept"),
                         )
-                      : const Text(
+                      : Text(
                           "Accepted",
                           style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
-                          ),
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.bold),
                         ),
                 ),
               );
@@ -179,6 +235,15 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDrawerItem(IconData icon, String title, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white),
+      title: Text(title,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+      onTap: onTap,
     );
   }
 }
