@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'add_equipment_screen.dart';
+import 'listing_page.dart';
 
 class OwnerDashboard extends StatefulWidget {
   const OwnerDashboard({super.key});
@@ -10,21 +12,48 @@ class OwnerDashboard extends StatefulWidget {
 }
 
 class _OwnerDashboardState extends State<OwnerDashboard> {
-  String userName = '';
+  String userName = 'Loading...';
   String userEmail = '';
+
+  // Dummy booking requests (replace with Firestore later if needed)
+  List<Map<String, dynamic>> bookingRequests = [
+    {
+      "equipment": "Canon EOS R5",
+      "renter": "Ali",
+      "date": "18 Nov 2025",
+      "status": "Pending"
+    },
+    {
+      "equipment": "Sony A7III",
+      "renter": "Siti",
+      "date": "20 Nov 2025",
+      "status": "Pending"
+    }
+  ];
 
   @override
   void initState() {
     super.initState();
-    _loadUserInfo();
+    _loadOwnerInfo();
   }
 
-  Future<void> _loadUserInfo() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+  Future<void> _loadOwnerInfo() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (mounted) {
+        setState(() {
+          userName = doc.data()?['name'] ?? 'Owner';
+          userEmail = doc.data()?['email'] ?? user.email ?? '';
+        });
+      }
+    }
+  }
+
+  void _acceptBooking(int index) {
     setState(() {
-      userName = doc['name'] ?? '';
-      userEmail = doc['email'] ?? '';
+      bookingRequests[index]["status"] = "Accepted";
     });
   }
 
@@ -41,41 +70,114 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Owner Dashboard'),
+        title: const Text("Owner Dashboard"),
         backgroundColor: Colors.deepPurple,
         actions: [
           IconButton(
             icon: const Icon(Icons.person),
-            tooltip: 'Profile',
+            tooltip: "Profile",
             onPressed: _goToProfile,
           ),
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
+            tooltip: "Logout",
             onPressed: _logout,
           ),
         ],
       ),
-      body: Center(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Welcome, $userName', style: const TextStyle(fontSize: 24)),
-            const SizedBox(height: 10),
-            Text('Email: $userEmail', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 20),
-            const Text(
-              'List your equipment with photos, description, and pricing.',
-              textAlign: TextAlign.center,
+            /// ---------- OWNER PROFILE ----------
+            Text(
+              "Welcome, $userName",
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
+            Text(userEmail),
+            const SizedBox(height: 20),
+
+            /// ---------- TWO MAIN BUTTONS ----------
+            Row(
+              children: [
+                /// ADD NEW EQUIPMENT
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final added = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AddEquipmentScreen(),
+                        ),
+                      );
+
+                      if (added == true) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Equipment added successfully!"),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text("Add Equipment"),
+                  ),
+                ),
+                const SizedBox(width: 16),
+
+                /// VIEW LISTINGS (Powered by Firestore)
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ListingPage(),
+                        ),
+                      );
+                    },
+                    child: const Text("View Listings"),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 30),
+
+            /// ---------- BOOKING REQUESTS ----------
+            const Text(
+              "Booking Requests",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+
+            ...bookingRequests.asMap().entries.map((entry) {
+              int index = entry.key;
+              var request = entry.value;
+
+              return Card(
+                child: ListTile(
+                  title: Text(request["equipment"]),
+                  subtitle: Text(
+                    "Renter: ${request['renter']}\nDate: ${request['date']}",
+                  ),
+                  trailing: request["status"] == "Pending"
+                      ? ElevatedButton(
+                          onPressed: () => _acceptBooking(index),
+                          child: const Text("Accept"),
+                        )
+                      : const Text(
+                          "Accepted",
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              );
+            }).toList(),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/addEquipment');
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }
