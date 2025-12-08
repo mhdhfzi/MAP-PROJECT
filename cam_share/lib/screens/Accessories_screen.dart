@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AccessoriesScreen extends StatelessWidget {
   const AccessoriesScreen({super.key});
@@ -31,51 +30,42 @@ class AccessoriesScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
+            // Top Buttons
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: _buildHeaderButton("BEGINNER", accentColor, () => Navigator.pop(context))),
+                // Clicking these buttons now syncs back to the Dashboard
+                Expanded(
+                  child: _buildHeaderButton(
+                    "BEGINNER", 
+                    accentColor, 
+                    () => Navigator.pop(context),
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: _buildHeaderButton("PRO", accentColor, () => Navigator.pop(context))),
+                Expanded(
+                  child: _buildHeaderButton(
+                    "PRO", 
+                    accentColor, 
+                    () => Navigator.pop(context),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // === REAL-TIME FIRESTORE LIST ===
+            // Item List
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0F4F8), 
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('products')
-                      .where('category', isEqualTo: 'accessories')
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return const Center(child: Text("Error loading accessories"));
-                    }
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(child: Text("No accessories listed."));
-                    }
-
-                    final docs = snapshot.data!.docs;
-                    
-                    return ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: docs.length,
-                      separatorBuilder: (ctx, i) => const SizedBox(height: 16),
-                      itemBuilder: (ctx, i) {
-                        final data = docs[i].data() as Map<String, dynamic>;
-                        return _buildListItem(data);
-                      },
-                    );
-                  },
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: 6,
+                  separatorBuilder: (ctx, i) => const SizedBox(height: 16),
+                  itemBuilder: (ctx, i) => _buildListItem(),
                 ),
               ),
             ),
@@ -97,7 +87,7 @@ class AccessoriesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildListItem(Map<String, dynamic> data) {
+  Widget _buildListItem() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -107,33 +97,16 @@ class AccessoriesScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.grey[600],
             borderRadius: BorderRadius.circular(4),
-            image: data['imageUrl'] != null && data['imageUrl'].toString().isNotEmpty
-                ? DecorationImage(
-                    image: NetworkImage(data['imageUrl']),
-                    fit: BoxFit.cover,
-                  )
-                : null,
           ),
-          child: (data['imageUrl'] == null || data['imageUrl'].toString().isEmpty) 
-              ? const Icon(Icons.cable, color: Colors.white54) 
-              : null,
         ),
         const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                data['name'] ?? "Accessory Item",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "RM ${data['price'] ?? '0'}",
-                style: const TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-            ],
-          ),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("ACCESSORY", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            SizedBox(height: 4),
+            Text("Price", style: TextStyle(color: Colors.grey, fontSize: 14)),
+          ],
         )
       ],
     );
