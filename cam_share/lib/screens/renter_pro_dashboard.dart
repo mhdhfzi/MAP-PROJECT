@@ -6,7 +6,6 @@ import 'photography_screen.dart';
 import 'videography_screen.dart';
 import 'accessories_screen.dart';
 import 'cart_screen.dart';
-import 'photography_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -556,3 +555,4 @@ class TrianglePainter extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
+
