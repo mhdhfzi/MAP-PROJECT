@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cam_share/screens/profile_screen.dart';
+import 'profile_screen.dart';
 import 'photography_screen.dart';
 import 'videography_screen.dart';
 import 'accessories_screen.dart';
+import 'cart_screen.dart';
+import 'photography_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -66,6 +68,9 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
   bool _purposeEvents = false;
   bool _purposeIndoor = false;
 
+  // Shared cart list
+  final List<Map<String, dynamic>> cartItems = [];
+
   @override
   void initState() {
     super.initState();
@@ -116,10 +121,28 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
     });
   }
 
+  void _navigateToPhotography() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PhotographyScreen(cartItems: cartItems),
+      ),
+    );
+  }
+
   void _navigateToCategory(Widget screen) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => screen),
+    );
+  }
+
+  void _navigateToCart() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CartScreen(cartItems: cartItems),
+      ),
     );
   }
 
@@ -139,16 +162,34 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
           ),
         ),
         actions: [
-          IconButton(
-            icon:
-                const Icon(Icons.shopping_cart_outlined, color: Colors.black, size: 28),
-            onPressed: () {},
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.shopping_cart_outlined,
+                    color: Colors.black, size: 28),
+                onPressed: _navigateToCart,
+              ),
+              if (cartItems.isNotEmpty)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      cartItems.length.toString(),
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
       ),
-
-      // Swipeable Drawer
       drawer: Drawer(
         child: Container(
           color: accentColor,
@@ -176,19 +217,16 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
                 const SizedBox(height: 20),
                 Divider(color: Colors.white30),
                 const SizedBox(height: 10),
-
-                // Menu Items
                 _buildDrawerItem(Icons.home, "Dashboard", () => Navigator.pop(context)),
                 _buildDrawerItem(Icons.person, "Profile", _goToProfile),
                 _buildDrawerItem(Icons.settings, "Settings", () {}),
                 _buildDrawerItem(Icons.help, "Help", () {}),
                 const Spacer(),
-
-                // Logout Button at bottom
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.white),
                   title: const Text("Logout",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                   onTap: _logout,
                 ),
               ],
@@ -196,7 +234,6 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
           ),
         ),
       ),
-
       body: Stack(
         children: [
           Padding(
@@ -225,7 +262,7 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
                       _buildVerticalButton(
                         "Photography",
                         cardColor,
-                        () => _navigateToCategory(const PhotographyScreen()),
+                        _navigateToPhotography,
                       ),
                       const SizedBox(width: 12),
                       _buildVerticalButton(
@@ -264,7 +301,6 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
             ),
         ],
       ),
-
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: SizedBox(
         width: 65,
@@ -284,12 +320,85 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
     return ListTile(
       leading: Icon(icon, color: Colors.white),
       title: Text(title,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
       onTap: onTap,
     );
   }
 
-  // === Copy your existing methods below ===
+  Widget _buildHeaderButton(String text, Color color, VoidCallback onPressed) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+        ),
+        elevation: 2,
+      ),
+      onPressed: onPressed,
+      child: Text(
+        text,
+        style:
+            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+      ),
+    );
+  }
+
+  Widget _buildVerticalButton(String title, Color color, VoidCallback onTap) {
+    return Expanded(
+      child: SizedBox(
+        height: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color,
+            foregroundColor: Colors.black87,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+            ),
+            elevation: 2,
+            padding: EdgeInsets.zero,
+          ),
+          onPressed: onTap,
+          child: Center(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCheckboxRow(String label, bool value, Function(bool?) onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+              child: Text(label,
+                  style: const TextStyle(color: Colors.white, fontSize: 12))),
+          SizedBox(
+            height: 24,
+            width: 24,
+            child: Checkbox(
+              value: value,
+              onChanged: onChanged,
+              fillColor: MaterialStateProperty.all(Colors.white),
+              checkColor: Colors.blue,
+              side: BorderSide.none,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBeginnerDropdown(Color accentColor) {
     return Stack(
       alignment: Alignment.topLeft,
@@ -425,79 +534,6 @@ class _RenterProDashboardState extends State<RenterProDashboard> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildCheckboxRow(String label, bool value, Function(bool?) onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-              child: Text(label,
-                  style: const TextStyle(color: Colors.white, fontSize: 12))),
-          SizedBox(
-            height: 24,
-            width: 24,
-            child: Checkbox(
-              value: value,
-              onChanged: onChanged,
-              fillColor: MaterialStateProperty.all(Colors.white),
-              checkColor: Colors.blue,
-              side: BorderSide.none,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderButton(String text, Color color, VoidCallback onPressed) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
-        ),
-        elevation: 2,
-      ),
-      onPressed: onPressed,
-      child: Text(
-        text,
-        style:
-            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-      ),
-    );
-  }
-
-  Widget _buildVerticalButton(String title, Color color, VoidCallback onTap) {
-    return Expanded(
-      child: SizedBox(
-        height: double.infinity,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: color,
-            foregroundColor: Colors.black87,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
-            ),
-            elevation: 2,
-            padding: EdgeInsets.zero,
-          ),
-          onPressed: onTap,
-          child: Center(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

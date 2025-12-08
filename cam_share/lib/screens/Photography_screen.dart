@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'cart_screen.dart';
+import 'checkout_screen.dart'; 
 
-class PhotographyScreen extends StatelessWidget {
-  const PhotographyScreen({super.key});
+class PhotographyScreen extends StatefulWidget {
+  final List<Map<String, dynamic>> cartItems;
 
+  const PhotographyScreen({super.key, required this.cartItems});
+
+  @override
+  State<PhotographyScreen> createState() => _PhotographyScreenState();
+}
+
+class _PhotographyScreenState extends State<PhotographyScreen> {
   @override
   Widget build(BuildContext context) {
     final Color accentColor = const Color(0xFF4A00E0);
@@ -16,120 +26,169 @@ class PhotographyScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Photography", style: TextStyle(color: Colors.black, fontSize: 16)),
+        title: const Text("Photography",
+            style: TextStyle(color: Colors.black, fontSize: 16)),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black),
-            onPressed: () {},
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.shopping_cart_outlined,
+                    color: Colors.black),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            CartScreen(cartItems: widget.cartItems)),
+                  );
+                },
+              ),
+              if (widget.cartItems.isNotEmpty)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      widget.cartItems.length.toString(),
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          children: [
-            // Top Buttons
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildHeaderButton(
-                    "BEGINNER", 
-                    accentColor, 
-                    () => Navigator.pop(context),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildHeaderButton(
-                    "PRO", 
-                    accentColor, 
-                    () => Navigator.pop(context),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('listings').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-            // Item List
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F4F8), // Light grey/blue background for list area
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: 5, // Dummy item count
-                  separatorBuilder: (ctx, i) => const SizedBox(height: 16),
-                  itemBuilder: (ctx, i) => _buildListItem(),
-                ),
-              ),
-            ),
-          ],
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(child: Text("No equipment available"));
+            }
+
+            final items = snapshot.data!.docs;
+
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              separatorBuilder: (ctx, i) => const SizedBox(height: 16),
+              itemCount: items.length,
+              itemBuilder: (ctx, i) {
+                final item = items[i];
+                return _buildListItem(
+                  item['name'] ?? "Unnamed Item",
+                  item['price'] ?? 0,
+                  () {
+                    setState(() {
+                      widget.cartItems.add({
+                        'name': item['name'] ?? "Unnamed Item",
+                        'price': item['price'] ?? 0,
+                      });
+                    });
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("${item['name']} added to cart"),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
         ),
       ),
-      // Floating Home Button
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: SizedBox(
-        width: 65,
-        height: 65,
-        child: FloatingActionButton(
-          onPressed: () => Navigator.pop(context), // Go back home
-          backgroundColor: accentColor,
-          elevation: 4,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.home, color: Colors.white, size: 36),
-        ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accentColor,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: widget.cartItems.isEmpty
+                  ? null
+                  : () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              CheckoutScreen(cartItems: widget.cartItems),
+                        ),
+                      );
+                    },
+              child: const Text(
+                "Checkout",
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: 65,
+            height: 65,
+            child: FloatingActionButton(
+              onPressed: () => Navigator.pop(context),
+              backgroundColor: accentColor,
+              elevation: 4,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.home, color: Colors.white, size: 36),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildListItem() {
+  Widget _buildListItem(String name, dynamic price, VoidCallback onAddToCart) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Image Placeholder
         Container(
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: Colors.grey[600],
+            color: Colors.grey[300],
             borderRadius: BorderRadius.circular(4),
           ),
         ),
         const SizedBox(width: 16),
-        // Text Info
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "ITEM",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            SizedBox(height: 4),
-            Text(
-              "Price",
-              style: TextStyle(color: Colors.grey, fontSize: 14),
-            ),
-          ],
-        )
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name,
+                  style:
+                      const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 4),
+              Text("RM $price / day",
+                  style: const TextStyle(color: Colors.grey, fontSize: 14)),
+            ],
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.add_shopping_cart),
+          color: Colors.green,
+          onPressed: onAddToCart,
+        ),
       ],
-    );
-  }
-
-  Widget _buildHeaderButton(String text, Color color, VoidCallback onPressed) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        elevation: 2,
-        minimumSize: const Size(double.infinity, 50),
-      ),
-      onPressed: onPressed,
-      child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
     );
   }
 }
