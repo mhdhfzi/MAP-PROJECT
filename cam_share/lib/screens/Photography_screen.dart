@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PhotographyScreen extends StatelessWidget {
   const PhotographyScreen({super.key});
@@ -53,31 +54,60 @@ class PhotographyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Item List
+            // === REAL-TIME FIRESTORE LIST ===
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0F4F8), // Light grey/blue background for list area
+                  color: const Color(0xFFF0F4F8), 
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: 5, // Dummy item count
-                  separatorBuilder: (ctx, i) => const SizedBox(height: 16),
-                  itemBuilder: (ctx, i) => _buildListItem(),
+                child: StreamBuilder<QuerySnapshot>(
+                  // Query: Fetch items where category is 'photography'
+                  stream: FirebaseFirestore.instance
+                      .collection('products')
+                      .where('category', isEqualTo: 'photography')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    // 1. Loading State
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    // 2. Error State
+                    if (snapshot.hasError) {
+                      return const Center(child: Text("Error loading catalog"));
+                    }
+
+                    // 3. Empty State
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(child: Text("No photography gear listed yet."));
+                    }
+
+                    // 4. Data List
+                    final docs = snapshot.data!.docs;
+                    
+                    return ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: docs.length,
+                      separatorBuilder: (ctx, i) => const SizedBox(height: 16),
+                      itemBuilder: (ctx, i) {
+                        final data = docs[i].data() as Map<String, dynamic>;
+                        return _buildListItem(data);
+                      },
+                    );
+                  },
                 ),
               ),
             ),
           ],
         ),
       ),
-      // Floating Home Button
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: SizedBox(
         width: 65,
         height: 65,
         child: FloatingActionButton(
-          onPressed: () => Navigator.pop(context), // Go back home
+          onPressed: () => Navigator.pop(context),
           backgroundColor: accentColor,
           elevation: 4,
           shape: const CircleBorder(),
@@ -87,34 +117,52 @@ class PhotographyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildListItem() {
+  Widget _buildListItem(Map<String, dynamic> data) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Image Placeholder
+        // Image Placeholder (or actual image if URL exists)
         Container(
           width: 80,
           height: 80,
           decoration: BoxDecoration(
             color: Colors.grey[600],
             borderRadius: BorderRadius.circular(4),
+            image: data['imageUrl'] != null && data['imageUrl'].toString().isNotEmpty
+                ? DecorationImage(
+                    image: NetworkImage(data['imageUrl']),
+                    fit: BoxFit.cover,
+                  )
+                : null,
           ),
+          child: (data['imageUrl'] == null || data['imageUrl'].toString().isEmpty) 
+              ? const Icon(Icons.camera_alt, color: Colors.white54) 
+              : null,
         ),
         const SizedBox(width: 16),
         // Text Info
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "ITEM",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            SizedBox(height: 4),
-            Text(
-              "Price",
-              style: TextStyle(color: Colors.grey, fontSize: 14),
-            ),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                data['name'] ?? "Unknown Item",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "RM ${data['price'] ?? '0'}", // Assuming currency, adjust as needed
+                style: const TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                 data['description'] ?? "",
+                 maxLines: 2,
+                 overflow: TextOverflow.ellipsis,
+                 style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ],
+          ),
         )
       ],
     );
