@@ -14,27 +14,13 @@ class OwnerDashboard extends StatefulWidget {
 class _OwnerDashboardState extends State<OwnerDashboard> {
   String userName = '';
   String userEmail = '';
-
-  // Dummy booking requests
-  List<Map<String, dynamic>> bookingRequests = [
-    {
-      "equipment": "Canon EOS R5",
-      "renter": "Ali",
-      "date": "18 Nov 2025",
-      "status": "Pending"
-    },
-    {
-      "equipment": "Sony A7III",
-      "renter": "Siti",
-      "date": "20 Nov 2025",
-      "status": "Pending"
-    }
-  ];
+  List<String> ownerEquipmentIds = [];
 
   @override
   void initState() {
     super.initState();
     _loadOwnerInfo();
+    _loadOwnerEquipment();
   }
 
   Future<void> _loadOwnerInfo() async {
@@ -51,10 +37,21 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     }
   }
 
-  void _acceptBooking(int index) {
-    setState(() {
-      bookingRequests[index]["status"] = "Accepted";
-    });
+  Future<void> _loadOwnerEquipment() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('listings')
+          .where('ownerId', isEqualTo: user.uid)
+          .get();
+
+      if (mounted) {
+        setState(() {
+          ownerEquipmentIds =
+              snapshot.docs.map((doc) => doc.id).toList();
+        });
+      }
+    }
   }
 
   void _logout() async {
@@ -67,7 +64,6 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
   }
 
   void _goToSettings() {
-    // Navigate to settings page (implement later)
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Settings clicked")),
     );
@@ -166,6 +162,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                             content: Text("Equipment added successfully!"),
                           ),
                         );
+                        _loadOwnerEquipment(); // Refresh equipment IDs
                       }
                     },
                     icon: const Icon(Icons.add),
@@ -203,35 +200,72 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
             ),
             const SizedBox(height: 10),
 
-            ...bookingRequests.asMap().entries.map((entry) {
-              int index = entry.key;
-              var request = entry.value;
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection("booking_requests")
+                  .orderBy("date", descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              return Card(
-                color: cardColor,
-                margin: const EdgeInsets.symmetric(vertical: 6),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                child: ListTile(
-                  title: Text(request["equipment"],
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(
-                    "Renter: ${request['renter']}\nDate: ${request['date']}",
-                  ),
-                  trailing: request["status"] == "Pending"
-                      ? ElevatedButton(
-                          onPressed: () => _acceptBooking(index),
-                          child: const Text("Accept"),
-                        )
-                      : Text(
-                          "Accepted",
-                          style: TextStyle(
-                              color: Colors.green[700],
-                              fontWeight: FontWeight.bold),
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("No booking requests yet."));
+                }
+
+                // Filter booking requests for equipment owned by current owner
+                final allRequests = snapshot.data!.docs;
+                final ownerRequests = allRequests.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final equipmentId = data['equipmentId'] ?? '';
+                  return ownerEquipmentIds.contains(equipmentId);
+                }).toList();
+
+                if (ownerRequests.isEmpty) {
+                  return const Center(child: Text("No booking requests yet."));
+                }
+
+                return Column(
+                  children: ownerRequests.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final status = data['status'] ?? "Pending";
+
+                    return Card(
+                      color: cardColor,
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      child: ListTile(
+                        title: Text(
+                          data["equipmentName"] ?? "Unnamed Equipment",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                ),
-              );
-            }).toList(),
+                        subtitle: Text(
+                          "Renter: ${data['renterName'] ?? 'Unknown'}\nDate: ${data['date'] != null ? (data['date'] as Timestamp).toDate().toLocal().toString().split(' ')[0] : 'N/A'}",
+                        ),
+                        trailing: status == "Pending"
+                            ? ElevatedButton(
+                                onPressed: () {
+                                  FirebaseFirestore.instance
+                                      .collection("booking_requests")
+                                      .doc(doc.id)
+                                      .update({"status": "Accepted"});
+                                },
+                                child: const Text("Accept"),
+                              )
+                            : Text(
+                                "Accepted",
+                                style: TextStyle(
+                                    color: Colors.green[700],
+                                    fontWeight: FontWeight.bold),
+                              ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
           ],
         ),
       ),

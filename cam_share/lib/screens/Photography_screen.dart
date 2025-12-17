@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'cart_screen.dart';
-import 'checkout_screen.dart'; 
+import 'checkout_screen.dart';
 
 class PhotographyScreen extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
@@ -35,14 +35,7 @@ class _PhotographyScreenState extends State<PhotographyScreen> {
               IconButton(
                 icon: const Icon(Icons.shopping_cart_outlined,
                     color: Colors.black),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) =>
-                            CartScreen(cartItems: widget.cartItems)),
-                  );
-                },
+                onPressed: _goToCart,
               ),
               if (widget.cartItems.isNotEmpty)
                 Positioned(
@@ -67,14 +60,17 @@ class _PhotographyScreenState extends State<PhotographyScreen> {
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('listings').snapshots(),
+          stream: FirebaseFirestore.instance
+              .collection('listings')
+              .where('category', isEqualTo: 'Photography')
+              .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
 
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return const Center(child: Text("No equipment available"));
+              return const Center(child: Text("No photography equipment available"));
             }
 
             final items = snapshot.data!.docs;
@@ -85,24 +81,14 @@ class _PhotographyScreenState extends State<PhotographyScreen> {
               itemCount: items.length,
               itemBuilder: (ctx, i) {
                 final item = items[i];
-                return _buildListItem(
-                  item['name'] ?? "Unnamed Item",
-                  item['price'] ?? 0,
-                  () {
-                    setState(() {
-                      widget.cartItems.add({
-                        'name': item['name'] ?? "Unnamed Item",
-                        'price': item['price'] ?? 0,
-                      });
-                    });
+                final data = item.data() as Map<String, dynamic>;
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("${item['name']} added to cart"),
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
-                  },
+                return _buildListItem(
+                  data['name'] ?? "Unnamed Item",
+                  data['price'] ?? 0,
+                  data['imageUrl'] ?? '',
+                  data['ownerId'] ?? '',  // get ownerId
+                  item.id,                // equipmentId
                 );
               },
             );
@@ -110,65 +96,41 @@ class _PhotographyScreenState extends State<PhotographyScreen> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accentColor,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: widget.cartItems.isEmpty
-                  ? null
-                  : () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              CheckoutScreen(cartItems: widget.cartItems),
-                        ),
-                      );
-                    },
-              child: const Text(
-                "Checkout",
-                style: TextStyle(color: Colors.white, fontSize: 18),
-              ),
+      floatingActionButton: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: accentColor,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: 65,
-            height: 65,
-            child: FloatingActionButton(
-              onPressed: () => Navigator.pop(context),
-              backgroundColor: accentColor,
-              elevation: 4,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.home, color: Colors.white, size: 36),
-            ),
+          onPressed: widget.cartItems.isEmpty ? null : _goToCart,
+          child: const Text(
+            "Checkout",
+            style: TextStyle(color: Colors.white, fontSize: 18),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildListItem(String name, dynamic price, VoidCallback onAddToCart) {
+  void _goToCart() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CartScreen(cartItems: widget.cartItems),
+      ),
+    );
+  }
+
+  Widget _buildListItem(
+      String name, dynamic price, String imageUrl, String ownerId, String equipmentId) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
+        _safeImage(imageUrl),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
@@ -186,9 +148,58 @@ class _PhotographyScreenState extends State<PhotographyScreen> {
         IconButton(
           icon: const Icon(Icons.add_shopping_cart),
           color: Colors.green,
-          onPressed: onAddToCart,
+          onPressed: () {
+            setState(() {
+              widget.cartItems.add({
+                'name': name,
+                'price': price,
+                'category': 'Photography',
+                'ownerId': ownerId,
+                'equipmentId': equipmentId,
+              });
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("$name added to cart"),
+                duration: const Duration(seconds: 1),
+              ),
+            );
+          },
         ),
       ],
+    );
+  }
+
+  Widget _safeImage(String? url) {
+    if (url == null || url.isEmpty || !url.startsWith("http")) {
+      return Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: const Icon(Icons.image_not_supported, color: Colors.white),
+      );
+    }
+
+    return Image.network(
+      url,
+      width: 80,
+      height: 80,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) {
+        return Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Icon(Icons.broken_image, color: Colors.white),
+        );
+      },
     );
   }
 }

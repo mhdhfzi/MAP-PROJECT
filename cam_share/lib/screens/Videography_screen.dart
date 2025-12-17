@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'cart_screen.dart';
 
-class VideographyScreen extends StatelessWidget {
-  const VideographyScreen({super.key});
+class VideographyScreen extends StatefulWidget {
+  final List<Map<String, dynamic>> cartItems;
 
+  const VideographyScreen({super.key, required this.cartItems});
+
+  @override
+  State<VideographyScreen> createState() => _VideographyScreenState();
+}
+
+class _VideographyScreenState extends State<VideographyScreen> {
   @override
   Widget build(BuildContext context) {
     final Color accentColor = const Color(0xFF4A00E0);
@@ -16,111 +25,180 @@ class VideographyScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Videography", style: TextStyle(color: Colors.black, fontSize: 16)),
+        title: const Text("Videography",
+            style: TextStyle(color: Colors.black, fontSize: 16)),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black),
-            onPressed: () {},
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.shopping_cart_outlined,
+                    color: Colors.black),
+                onPressed: _goToCart,
+              ),
+              if (widget.cartItems.isNotEmpty)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      widget.cartItems.length.toString(),
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          children: [
-            // Top Buttons
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildHeaderButton(
-                    "BEGINNER", 
-                    accentColor, 
-                    () => Navigator.pop(context),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildHeaderButton(
-                    "PRO", 
-                    accentColor, 
-                    () => Navigator.pop(context),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('listings')
+              .where('category', isEqualTo: 'Videography')
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-            // Item List
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F4F8), 
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: 5,
-                  separatorBuilder: (ctx, i) => const SizedBox(height: 16),
-                  itemBuilder: (ctx, i) => _buildListItem(),
-                ),
-              ),
-            ),
-          ],
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(child: Text("No videography equipment available"));
+            }
+
+            final items = snapshot.data!.docs;
+
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              separatorBuilder: (ctx, i) => const SizedBox(height: 16),
+              itemCount: items.length,
+              itemBuilder: (ctx, i) {
+                final item = items[i];
+                final data = item.data() as Map<String, dynamic>;
+
+                return _buildListItem(
+                  data['name'] ?? "Unnamed Item",
+                  data['price'] ?? 0,
+                  data['imageUrl'] ?? '',
+                  data['ownerId'] ?? '',
+                  item.id,
+                );
+              },
+            );
+          },
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: SizedBox(
-        width: 65,
-        height: 65,
-        child: FloatingActionButton(
-          onPressed: () => Navigator.pop(context),
-          backgroundColor: accentColor,
-          elevation: 4,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.home, color: Colors.white, size: 36),
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: accentColor,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          onPressed: widget.cartItems.isEmpty ? null : _goToCart,
+          child: const Text(
+            "Checkout",
+            style: TextStyle(color: Colors.white, fontSize: 18),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildListItem() {
+  void _goToCart() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CartScreen(cartItems: widget.cartItems),
+      ),
+    );
+  }
+
+  Widget _buildListItem(
+      String name, dynamic price, String imageUrl, String ownerId, String equipmentId) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: Colors.grey[600],
-            borderRadius: BorderRadius.circular(4),
+        _safeImage(imageUrl),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name,
+                  style:
+                      const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 4),
+              Text("RM $price / day",
+                  style: const TextStyle(color: Colors.grey, fontSize: 14)),
+            ],
           ),
         ),
-        const SizedBox(width: 16),
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("VIDEO ITEM", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            SizedBox(height: 4),
-            Text("Price", style: TextStyle(color: Colors.grey, fontSize: 14)),
-          ],
-        )
+        IconButton(
+          icon: const Icon(Icons.add_shopping_cart),
+          color: Colors.green,
+          onPressed: () {
+            setState(() {
+              widget.cartItems.add({
+                'name': name,
+                'price': price,
+                'category': 'Videography',
+                'ownerId': ownerId,
+                'equipmentId': equipmentId,
+              });
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("$name added to cart"),
+                duration: const Duration(seconds: 1),
+              ),
+            );
+          },
+        ),
       ],
     );
   }
 
-  Widget _buildHeaderButton(String text, Color color, VoidCallback onPressed) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        elevation: 2,
-        minimumSize: const Size(double.infinity, 50),
-      ),
-      onPressed: onPressed,
-      child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+  Widget _safeImage(String? url) {
+    if (url == null || url.isEmpty || !url.startsWith("http")) {
+      return Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: const Icon(Icons.image_not_supported, color: Colors.white),
+      );
+    }
+
+    return Image.network(
+      url,
+      width: 80,
+      height: 80,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) {
+        return Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Icon(Icons.broken_image, color: Colors.white),
+        );
+      },
     );
   }
 }

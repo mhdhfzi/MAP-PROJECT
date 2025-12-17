@@ -21,6 +21,9 @@ class _EditEquipmentScreenState extends State<EditEquipmentScreen> {
   late TextEditingController priceController;
   late TextEditingController imageUrlController;
 
+  String _selectedCategory = "Photography";
+  final List<String> _categories = ["Photography", "Videography", "Accessories"];
+
   @override
   void initState() {
     super.initState();
@@ -32,13 +35,15 @@ class _EditEquipmentScreenState extends State<EditEquipmentScreen> {
         TextEditingController(text: widget.data["price"]?.toString() ?? "0");
     imageUrlController =
         TextEditingController(text: widget.data["imageUrl"] ?? "");
+    _selectedCategory = widget.data["category"] ?? "Photography";
   }
 
   Future<void> saveChanges() async {
     if (nameController.text.trim().isEmpty ||
-        priceController.text.trim().isEmpty) {
+        priceController.text.trim().isEmpty ||
+        _selectedCategory.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Name and price are required")),
+        const SnackBar(content: Text("Name, price, and category are required")),
       );
       return;
     }
@@ -51,6 +56,7 @@ class _EditEquipmentScreenState extends State<EditEquipmentScreen> {
       "description": descController.text.trim(),
       "price": double.tryParse(priceController.text.trim()) ?? 0,
       "imageUrl": imageUrlController.text.trim(),
+      "category": _selectedCategory,
     });
 
     if (!mounted) return;
@@ -92,6 +98,25 @@ class _EditEquipmentScreenState extends State<EditEquipmentScreen> {
             TextField(
               controller: imageUrlController,
               decoration: const InputDecoration(labelText: "Image URL"),
+            ),
+            const SizedBox(height: 16),
+            // Dropdown for category
+            DropdownButtonFormField<String>(
+              value: _selectedCategory,
+              decoration: const InputDecoration(labelText: "Category"),
+              items: _categories
+                  .map((category) => DropdownMenuItem(
+                        value: category,
+                        child: Text(category),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedCategory = value;
+                  });
+                }
+              },
             ),
             const SizedBox(height: 20),
             ElevatedButton(

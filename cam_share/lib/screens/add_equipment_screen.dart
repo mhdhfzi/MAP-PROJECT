@@ -14,13 +14,17 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _imageUrlController = TextEditingController();
 
+  String _selectedCategory = "Photography"; // Default category
+  final List<String> _categories = ["Photography", "Videography", "Accessories"];
+
   bool _isLoading = false;
 
   Future<void> _addEquipment() async {
     if (_nameController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
         _priceController.text.isEmpty ||
-        _imageUrlController.text.isEmpty) {
+        _imageUrlController.text.isEmpty ||
+        _selectedCategory.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill in all fields")),
       );
@@ -35,6 +39,7 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
         "description": _descriptionController.text.trim(),
         "price": double.parse(_priceController.text.trim()),
         "imageUrl": _imageUrlController.text.trim(),
+        "category": _selectedCategory, // Add category field
         "createdAt": Timestamp.now(),
       });
 
@@ -75,6 +80,25 @@ class _AddEquipmentScreenState extends State<AddEquipmentScreen> {
                 controller: _imageUrlController,
                 decoration:
                     const InputDecoration(labelText: "Image URL (Paste here)"),
+              ),
+              const SizedBox(height: 16),
+              // Dropdown for category
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                decoration: const InputDecoration(labelText: "Category"),
+                items: _categories
+                    .map((category) => DropdownMenuItem(
+                          value: category,
+                          child: Text(category),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedCategory = value;
+                    });
+                  }
+                },
               ),
               const SizedBox(height: 20),
               _isLoading
