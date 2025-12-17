@@ -25,7 +25,7 @@ class CheckoutScreen extends StatelessWidget {
       return total;
     }
 
-    void _confirmOrder() async {
+    Future<void> _confirmOrder() async {
       final now = Timestamp.now();
       final currentUser = FirebaseAuth.instance.currentUser;
 
@@ -52,13 +52,12 @@ class CheckoutScreen extends StatelessWidget {
           "equipmentName": item['name'] ?? '',
           "renterName": currentUser.displayName ?? "Unknown Renter",
           "renterId": currentUser.uid,
-          "ownerId": ownerId, // Automatically fetched ownerId
+          "ownerId": ownerId,
           "date": now,
           "status": "Pending",
         });
       }
 
-      // Show confirmation dialog
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -67,7 +66,7 @@ class CheckoutScreen extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Close dialog
+                Navigator.pop(context);
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (_) => const RenterProDashboard()),
@@ -129,23 +128,64 @@ class CheckoutScreen extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
+                  const SizedBox(height: 20),
+                  
+                  // Swipe-to-confirm widget
+                  Container(
+                    height: 60,
                     width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: accentColor,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: _confirmOrder,
-                      child: const Text(
-                        "Confirm Checkout",
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
+                    decoration: BoxDecoration(
+                      color: accentColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: Text(
+                            "Swipe to Confirm Checkout",
+                            style: TextStyle(
+                              color: accentColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 0,
+                          child: Draggable(
+                            axis: Axis.horizontal,
+                            feedback: Container(
+                              height: 60,
+                              width: 60,
+                              decoration: BoxDecoration(
+                                color: accentColor,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.arrow_forward,
+                                  color: Colors.white),
+                            ),
+                            childWhenDragging: Container(),
+                            onDragEnd: (details) {
+                              if (details.offset.dx > 150) {
+                                _confirmOrder();
+                              }
+                            },
+                            child: Container(
+                              height: 60,
+                              width: 60,
+                              decoration: BoxDecoration(
+                                color: accentColor,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.arrow_forward,
+                                  color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
       ),

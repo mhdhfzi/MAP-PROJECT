@@ -120,15 +120,74 @@ class ListingPage extends StatelessWidget {
               final doc = listings[index];
               final data = doc.data() as Map<String, dynamic>;
 
-              return Card(
-                margin: const EdgeInsets.all(10),
-                child: ListTile(
-                  onLongPress: () => _showLongPressMenu(context, doc.id, data),
+              return Dismissible(
+                key: Key(doc.id),
+                background: Container(
+                  color: Colors.green,
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.only(left: 20),
+                  child: const Icon(Icons.edit, color: Colors.white),
+                ),
+                secondaryBackground: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20),
+                  child: const Icon(Icons.delete, color: Colors.white),
+                ),
+                confirmDismiss: (direction) async {
+                  if (direction == DismissDirection.startToEnd) {
+                    // Swipe Right -> Edit
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            EditEquipmentScreen(docId: doc.id, data: data),
+                      ),
+                    );
+                    return false; // Don't dismiss the item
+                  } else if (direction == DismissDirection.endToStart) {
+                    // Swipe Left -> Delete
+                    final confirm = await showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text("Confirm Delete"),
+                        content: const Text(
+                            "Are you sure you want to delete this listing?"),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text("Cancel")),
+                          TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text("Delete")),
+                        ],
+                      ),
+                    );
 
-                  leading: _safeImage(data["imageUrl"]),
-                  title: Text(data["name"] ?? "No name"),
-                  subtitle: Text("RM ${data["price"]}\n${data["description"]}"),
-                  isThreeLine: true,
+                    if (confirm == true) {
+                      await FirebaseFirestore.instance
+                          .collection("listings")
+                          .doc(doc.id)
+                          .delete();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Listing deleted")),
+                      );
+                    }
+                    return confirm;
+                  }
+                  return false;
+                },
+                child: Card(
+                  margin: const EdgeInsets.all(10),
+                  child: ListTile(
+                    onLongPress: () => _showLongPressMenu(context, doc.id, data),
+                    leading: _safeImage(data["imageUrl"]),
+                    title: Text(data["name"] ?? "No name"),
+                    subtitle:
+                        Text("RM ${data["price"]}\n${data["description"]}"),
+                    isThreeLine: true,
+                  ),
                 ),
               );
             },

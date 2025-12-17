@@ -47,8 +47,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
 
       if (mounted) {
         setState(() {
-          ownerEquipmentIds =
-              snapshot.docs.map((doc) => doc.id).toList();
+          ownerEquipmentIds = snapshot.docs.map((doc) => doc.id).toList();
         });
       }
     }
@@ -111,7 +110,11 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const AddEquipmentScreen()),
-                  );
+                  ).then((added) {
+                    if (added == true) {
+                      _loadOwnerEquipment(); // Refresh equipment IDs
+                    }
+                  });
                 }),
                 _buildDrawerItem(Icons.list, "View Listings", () {
                   Navigator.push(
@@ -231,35 +234,93 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                     final data = doc.data() as Map<String, dynamic>;
                     final status = data['status'] ?? "Pending";
 
-                    return Card(
-                      color: cardColor,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      child: ListTile(
-                        title: Text(
-                          data["equipmentName"] ?? "Unnamed Equipment",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          "Renter: ${data['renterName'] ?? 'Unknown'}\nDate: ${data['date'] != null ? (data['date'] as Timestamp).toDate().toLocal().toString().split(' ')[0] : 'N/A'}",
-                        ),
-                        trailing: status == "Pending"
-                            ? ElevatedButton(
-                                onPressed: () {
-                                  FirebaseFirestore.instance
-                                      .collection("booking_requests")
-                                      .doc(doc.id)
-                                      .update({"status": "Accepted"});
-                                },
-                                child: const Text("Accept"),
-                              )
-                            : Text(
-                                "Accepted",
-                                style: TextStyle(
-                                    color: Colors.green[700],
-                                    fontWeight: FontWeight.bold),
+                    return Dismissible(
+                      key: Key(doc.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      onDismissed: (_) async {
+                        await FirebaseFirestore.instance
+                            .collection("booking_requests")
+                            .doc(doc.id)
+                            .delete();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Booking request deleted")),
+                        );
+                      },
+                      child: Card(
+                        color: cardColor,
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        child: ListTile(
+                          title: Text(
+                            data["equipmentName"] ?? "Unnamed Equipment",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            "Renter: ${data['renterName'] ?? 'Unknown'}\nDate: ${data['date'] != null ? (data['date'] as Timestamp).toDate().toLocal().toString().split(' ')[0] : 'N/A'}",
+                          ),
+                          trailing: status == "Pending"
+                              ? ElevatedButton(
+                                  onPressed: () {
+                                    FirebaseFirestore.instance
+                                        .collection("booking_requests")
+                                        .doc(doc.id)
+                                        .update({"status": "Accepted"});
+                                  },
+                                  child: const Text("Accept"),
+                                )
+                              : Text(
+                                  "Accepted",
+                                  style: TextStyle(
+                                      color: Colors.green[700],
+                                      fontWeight: FontWeight.bold),
+                                ),
+                          onLongPress: () {
+                            showModalBottomSheet(
+                              context: context,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.vertical(top: Radius.circular(16)),
                               ),
+                              builder: (_) {
+                                return SafeArea(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(Icons.delete, color: Colors.red),
+                                        title: const Text("Cancel Request"),
+                                        onTap: () async {
+                                          Navigator.pop(context);
+                                          await FirebaseFirestore.instance
+                                              .collection("booking_requests")
+                                              .doc(doc.id)
+                                              .delete();
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                                content:
+                                                    Text("Booking request cancelled")),
+                                          );
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(Icons.close),
+                                        title: const Text("Close"),
+                                        onTap: () => Navigator.pop(context),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
                       ),
                     );
                   }).toList(),
